@@ -6,22 +6,15 @@ import (
 	"net/http"
 )
 
-func SignInRequest(c *gin.Context) *domain.User {
+func InputUser(c *gin.Context) *domain.User {
 	var creds *domain.User
 	err := c.BindJSON(&creds)
 	if err != nil {
-		c.String(http.StatusBadRequest, "%v", err)
+		c.String(http.StatusBadRequest, "400")
 		return nil
 	}
-	return creds
-}
-
-func SignUpRequest(c *gin.Context) *domain.User {
-	var creds *domain.User
-	er := c.BindJSON(&creds)
-
-	if er != nil {
-		c.String(http.StatusBadRequest, "%v", er)
+	if creds == nil {
+		c.String(http.StatusBadRequest, "400")
 		return nil
 	}
 	return creds

@@ -1,12 +1,12 @@
 package service
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"github.com/namle133/LogIn.git/LogIn_Project/domain"
 )
 
-type IProduct interface {
-	SignUp(c *gin.Context, creds *domain.User) error
-	SignIn(c *gin.Context, creds *domain.User) (*domain.Claims, error)
-	LogOut(c *gin.Context) error
+type IUser interface {
+	CreateUser(c context.Context, u *domain.User) error
+	SignIn(c context.Context, creds *domain.User) (*domain.Claims, string, error)
+	//LogOut(c context.Context) interface{}
 }
