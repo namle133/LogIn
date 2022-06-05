@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-func InputUser(c *gin.Context) *domain.User {
-	var creds *domain.User
+func InputUser(c *gin.Context) *domain.UserInit {
+	var creds *domain.UserInit
 	err := c.BindJSON(&creds)
 	if err != nil {
 		c.String(http.StatusBadRequest, "400")

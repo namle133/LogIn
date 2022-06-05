@@ -6,7 +6,9 @@ import (
 )
 
 type IUser interface {
-	CreateUser(c context.Context, u *domain.User) error
-	SignIn(c context.Context, creds *domain.User) (*domain.Claims, string, error)
-	//LogOut(c context.Context) interface{}
+	CreateUser(c context.Context, u *domain.UserInit) error
+	SignIn(c context.Context, u *domain.UserInit) (*domain.Claims, error)
+	UserAdmin() error
+	CheckRowToken(c context.Context) error
+	LogOut(c context.Context) error
 }

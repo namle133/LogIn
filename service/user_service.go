@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/namle133/LogIn.git/LogIn_Project/domain"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -15,17 +16,42 @@ type UserService struct {
 
 var jwtKey = []byte("my-secrect-key")
 
-func (us *UserService) SignIn(c context.Context, creds *domain.User) (*domain.Claims, string, error) {
-	e := us.Db.First(&creds, "username=? AND password = ? AND email=?", creds.Username, creds.Password, creds.Email).Error
+var user string
+
+func AddUser(s string) {
+	user = s
+}
+
+func GetUser() string {
+	return user
+}
+
+func hash(s string) []byte {
+	bsp, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return bsp
+}
+
+func (us *UserService) SignIn(c context.Context, ui *domain.UserInit) (*domain.Claims, error) {
+	var u *domain.User
+	e := us.Db.First(&u, "username=? and email=?", ui.Username, ui.Email).Scan(&u).Error
 	if e != nil {
-		return nil, "", e
+		return nil, e
+	}
+	er := bcrypt.CompareHashAndPassword(u.Password, []byte(ui.Password))
+	if er != nil {
+		return nil, er
+	} else {
+		fmt.Println("password are equal")
 	}
 
-	expirationTime := time.Now().Add(3 * time.Minute)
+	expirationTime := time.Now().Add(5 * time.Minute)
 	claims := &domain.Claims{
-		Username: creds.Username,
-		Password: creds.Password,
-		Email:    creds.Email,
+		Username: ui.Username,
+		Password: string(hash(ui.Password)),
+		Email:    ui.Email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -35,12 +61,18 @@ func (us *UserService) SignIn(c context.Context, creds *domain.User) (*domain.Cl
 
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		return nil, "", e
+		return nil, e
 	}
-	return claims, tokenString, nil
+	tk := &domain.Token{Username: ui.Username, TokenString: tokenString}
+	failed := us.Db.Create(tk).Error
+	if failed != nil {
+		return nil, failed
+	}
+	AddUser(claims.Username)
+	return claims, nil
 }
 
-func (us *UserService) CreateUser(c context.Context, u *domain.User) error {
+func (us *UserService) CreateUser(c context.Context, u *domain.UserInit) error {
 	if u == nil {
 		return fmt.Errorf("user does not empty")
 	}
@@ -53,13 +85,39 @@ func (us *UserService) CreateUser(c context.Context, u *domain.User) error {
 	if u.Password == "" {
 		return fmt.Errorf("Error with password")
 	}
-	err := us.Db.Create(u).Error
+	uh := &domain.User{Username: u.Username, Password: hash(u.Password), Email: u.Email}
+	err := us.Db.Create(uh).Error
 	if err != nil {
 		return err
 	}
 	return nil
-
 }
 
-//func (p *UserService) LogOut(c context.Context) string {
-//}
+func (us *UserService) UserAdmin() error {
+	u := domain.UserInit{Username: "admin", Password: "admin1234", Email: "admin@gmail.com"}
+	uh := &domain.User{Username: u.Username, Password: hash(u.Password), Email: u.Email}
+	err := us.Db.Create(uh).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (us *UserService) CheckRowToken(c context.Context) error {
+	var t *domain.Token
+	rToken := us.Db.Find(&t).RowsAffected
+	if rToken < 1 {
+		return fmt.Errorf("Cannot create user")
+	}
+	return nil
+}
+
+func (us *UserService) LogOut(c context.Context) error {
+	s := GetUser()
+	var t *domain.Token
+	err := us.Db.Where("username=?", s).Delete(&t).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
