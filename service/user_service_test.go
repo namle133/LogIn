@@ -24,6 +24,7 @@ func TestUserService_SignIn(t *testing.T) {
 		want    *domain.Claims
 		wantErr bool
 	}{
+		//case success
 		{
 			fields: fields{Db: database.ConnectDatabase()},
 			args: args{
@@ -40,6 +41,25 @@ func TestUserService_SignIn(t *testing.T) {
 				StandardClaims: jwt.StandardClaims{ExpiresAt: time.Now().Add(5 * time.Minute).Unix()},
 			},
 			wantErr: false,
+		},
+
+		//case failed
+		{
+			fields: fields{Db: database.ConnectDatabase()},
+			args: args{
+				c: context.Background(),
+				ui: &domain.UserInit{
+					Username: "",
+					Password: "Namle311",
+					Email:    "Namle@gmail.com"},
+			},
+			want: &domain.Claims{
+				Username:       "",
+				Password:       "",
+				Email:          "",
+				StandardClaims: jwt.StandardClaims{ExpiresAt: 0},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -67,16 +87,30 @@ func TestUserService_CreateUser(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		//case success
 		{
 			fields: fields{Db: database.ConnectDatabase()},
 			args: args{
 				c: context.Background(),
 				u: &domain.UserInit{
-					Username: "admin",
-					Password: "admin1234",
-					Email:    "admin@gmail.com"},
+					Username: "Namle",
+					Password: "Namle1234",
+					Email:    "Namle@gmail.com"},
 			},
 			wantErr: false,
+		},
+
+		//case failed
+		{
+			fields: fields{Db: database.ConnectDatabase()},
+			args: args{
+				c: context.Background(),
+				u: &domain.UserInit{
+					Username: "",
+					Password: "31231423",
+					Email:    ""},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
